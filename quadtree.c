@@ -207,7 +207,7 @@ quadtree_t* __qt_add(quadtree_t* qt, double x_pos,
             qt->se = __qt_add(qt->se, x_pos, y_pos, mass, &(quadrants.se));
             break;
         case QUADRANT_SW:
-            qt->sw = __qt_add(qt->sw, x_pos, y_pos, mass, &(quadrants.se));
+            qt->sw = __qt_add(qt->sw, x_pos, y_pos, mass, &(quadrants.sw));
             break;
     }
 
