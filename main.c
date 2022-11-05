@@ -48,6 +48,7 @@ int main() {
 
     printf("done\n");
     qt_free(qt);
+    DPRINTF("qt: %p\n", qt);
 
     return EXIT_SUCCESS; 
 }

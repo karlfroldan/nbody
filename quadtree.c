@@ -229,6 +229,7 @@ quadtree_t* __qt_add(quadtree_t* qt, double x_pos,
         qt->node_type = NODE_INTERNAL;
         if (qt->body != NULL) {
             free(qt->body);
+            qt->body = NULL;
         }
     }
 
@@ -271,8 +272,11 @@ void qt_free(quadtree_t* qt) {
 
     if (qt->body != NULL) {
         free(qt->body);
+        qt->body = NULL;
     }
+
     free(qt);
+    qt = NULL;
 }
 
 #ifdef DEBUG

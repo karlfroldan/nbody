@@ -9,4 +9,5 @@ all : $(OBJS)
 	cc $(CFLAGS) -c -o $@ $^
 
 clean :
-	-rm quadtree *.o
+	@rm quadtree
+	@rm $(OBJS)
