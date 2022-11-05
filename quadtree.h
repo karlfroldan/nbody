@@ -16,21 +16,17 @@ struct boundary {
      */
 };
 
-struct quadtree {
-    struct quadtree* ne;
-    struct quadtree* se;
-    struct quadtree* nw;
-    struct quadtree* sw;
+typedef enum {
+    /* An internal node only contains the coordinate of the 
+     * center of gravity and the total mass of that node.
+     * It should not contain any celestial body. */
+    NODE_INTERNAL,
+    /* An external node contains the body itself plus its 
+     * properties such as position, force, and velocity */
+    NODE_EXTERNAL
+} nodetype_t;
 
-    /* Boundaries */
-    struct boundary boundary; 
-
-    /* Positional variables */
-    double x_pos;
-    double y_pos;
-
-    /* Some properties */
-    double mass;
+struct body {
 
     /* Force */
     double x_force;
@@ -43,6 +39,33 @@ struct quadtree {
     /* Acceleration */ 
     double a_x;
     double a_y;
+};
+
+struct quadtree {
+    struct quadtree* ne;
+    struct quadtree* se;
+    struct quadtree* nw;
+    struct quadtree* sw;
+
+    /* If the node is an internal node, then this is the center-of-mass.
+     * If it is an external node, then this is the position of the 
+     * celestial body itself */
+    double x_pos;
+    double y_pos;
+
+    /* If the node is an internal node, then this is the total sum of all 
+     * the bodies. If it is an external node, then this is the mass of the 
+     * celestial body itself */
+    double mass;
+
+    /* Boundaries */
+    struct boundary boundary; 
+
+    /* What kind of node is this tree? */
+    nodetype_t node_type;
+
+    /* This could actually be null */
+    struct body* body;
 };
 
 typedef struct quadtree quadtree_t;

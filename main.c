@@ -40,7 +40,13 @@ int main() {
     );
     #endif /* DEBUG */
 
+    DPRINTF("\n\n");
+    SHOW_QUADTREE(qt);
 
+    printf("==========================\n");
+    LIST_QUADTREE(qt);
+
+    printf("done\n");
     qt_free(qt);
 
     return EXIT_SUCCESS; 

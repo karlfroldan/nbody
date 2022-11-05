@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h> 
 #include "debug.h"
 
 #include "quadtree.h"
@@ -17,6 +18,7 @@
         its->quad.y_begin = ybeg; \
         its->quad.y_end = yend; \
     } while (0)
+
 
 static double canvas_x = 1.0;
 static double canvas_y = 1.0;
@@ -43,6 +45,17 @@ static struct quadrant_d quad_map[] = {
     {QUADRANT_SW, "southwest"},
 };
 
+/* The interval structure stores division by 2 of a 2D quadrant */
+struct interval_pos {
+    struct boundary ne;
+    struct boundary nw;
+    struct boundary se;
+    struct boundary sw;
+};
+
+enum quadrant find_quadrant_and_insert(quadtree_t* qt, 
+    struct interval_pos* quadrants, double x_pos, double y_pos, double mass);
+
 char* quad_desc(enum quadrant q) {
     for (int i = 0; i < (int) (sizeof(quad_map) / sizeof(struct quadrant_d)); ++i) {
         if (q == quad_map[i].quadrant) {
@@ -55,13 +68,6 @@ char* quad_desc(enum quadrant q) {
 
 #endif
 
-/* The interval structure stores division by 2 of a 2D quadrant */
-struct interval_pos {
-    struct boundary ne;
-    struct boundary nw;
-    struct boundary se;
-    struct boundary sw;
-};
 
 #ifdef DEBUG
 #define QPRINT(quad) \
@@ -87,7 +93,6 @@ void _qprint(struct interval_pos* q) {
 #define QPRINT(quad)
 #endif /* DEBUG */
 
-
 void calculate_ints(struct interval_pos* ints, struct boundary* base_int) {
 
     double x_half_len = (base_int->x_end - base_int->x_begin) / 2;
@@ -110,6 +115,18 @@ void calculate_ints(struct interval_pos* ints, struct boundary* base_int) {
     SETINTERVAL(ints, ne, x_half, base_int->x_end, base_int->y_begin, y_half);
     SETINTERVAL(ints, sw, base_int->x_begin, x_half, y_half, base_int->y_end);
     SETINTERVAL(ints, se, x_half, base_int->x_end, y_half, base_int->y_end);
+}
+
+struct body* qt_add_body() {
+    struct body* ptr;
+
+    if ((ptr = malloc(sizeof(struct body))) == NULL) {
+        fprintf(stderr, "[ERROR] malloc failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    memset(ptr, 0, sizeof(struct body));
+    return ptr;
 }
 
 quadtree_t* qt_add_node(double x_pos, double y_pos, double mass,
@@ -172,6 +189,7 @@ enum quadrant find_quadrant(struct interval_pos* q, double x, double y) {
     exit(1);
 }
 
+
 quadtree_t* __qt_add(quadtree_t* qt, double x_pos,
     double y_pos, double mass, struct boundary* boundary) {
     /* It is a new quadtree without any actual data */
@@ -179,6 +197,11 @@ quadtree_t* __qt_add(quadtree_t* qt, double x_pos,
         qt = qt_add_node(x_pos, y_pos, mass,
             boundary->x_begin, boundary->x_end,
             boundary->y_begin, boundary->y_end);
+
+        /* We create a new body here */
+        qt->body = qt_add_body();
+        qt->node_type = NODE_EXTERNAL;
+
         return qt;
     }
 
@@ -196,22 +219,44 @@ quadtree_t* __qt_add(quadtree_t* qt, double x_pos,
     }
     #endif /* DEBUG */
 
-    switch (find_quadrant(&quadrants, x_pos, y_pos)) {
+    find_quadrant_and_insert(qt, &quadrants, x_pos, y_pos, mass);
+
+    /* If there is currently a node existing here
+     * then we move the node to the appropriate location. */
+    if (qt->node_type == NODE_EXTERNAL) {
+        find_quadrant_and_insert(qt, &quadrants, qt->x_pos, qt->y_pos, qt->mass);
+        /* Delete the body here and change the type */
+        qt->node_type = NODE_INTERNAL;
+        if (qt->body != NULL) {
+            free(qt->body);
+        }
+    }
+
+
+    return qt;
+}
+
+enum quadrant find_quadrant_and_insert(quadtree_t* qt, 
+    struct interval_pos* quadrants, double x_pos, double y_pos, double mass) {
+    enum quadrant q;
+
+    q = find_quadrant(quadrants, x_pos, y_pos);
+    switch (q) {
         case QUADRANT_NE:
-            qt->ne = __qt_add(qt->ne, x_pos, y_pos, mass, &(quadrants.ne));
+            qt->ne = __qt_add(qt->ne, x_pos, y_pos, mass, &(quadrants->ne));
             break;
         case QUADRANT_NW:
-            qt->nw = __qt_add(qt->nw, x_pos, y_pos, mass, &(quadrants.nw));
+            qt->nw = __qt_add(qt->nw, x_pos, y_pos, mass, &(quadrants->nw));
             break;
         case QUADRANT_SE:
-            qt->se = __qt_add(qt->se, x_pos, y_pos, mass, &(quadrants.se));
+            qt->se = __qt_add(qt->se, x_pos, y_pos, mass, &(quadrants->se));
             break;
         case QUADRANT_SW:
-            qt->sw = __qt_add(qt->sw, x_pos, y_pos, mass, &(quadrants.sw));
+            qt->sw = __qt_add(qt->sw, x_pos, y_pos, mass, &(quadrants->sw));
             break;
     }
 
-    return qt;
+    return q;
 }
 
 void qt_free(quadtree_t* qt) {
@@ -224,6 +269,9 @@ void qt_free(quadtree_t* qt) {
     qt_free(qt->sw);
     qt_free(qt->se);
 
+    if (qt->body != NULL) {
+        free(qt->body);
+    }
     free(qt);
 }
 

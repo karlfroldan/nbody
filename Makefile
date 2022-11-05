@@ -1,5 +1,5 @@
 CFLAGS=-Wall -Wextra -O0 -fPIC -g -DDEBUG
-FILES=debug main quadtree
+FILES=main quadtree barneshut debug
 OBJS=$(patsubst %, %.o, $(FILES))
 
 all : $(OBJS)
